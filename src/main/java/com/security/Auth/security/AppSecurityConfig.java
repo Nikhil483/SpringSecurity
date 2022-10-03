@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import static com.security.Auth.security.ApplicationUserRole.*;
 
@@ -30,6 +31,8 @@ public class AppSecurityConfig {
 
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                //we can disable csrf if we are not calling request from web. if not disabled then capture the token sent in cookies. it will be under 'XSRF-Token'.
+                // then send token under header of the request. name: X-XSRF-TOKEN
                 http.
                         csrf().disable()
                         .authorizeRequests()
@@ -42,7 +45,20 @@ public class AppSecurityConfig {
                         .anyRequest()
                         .authenticated()
                         .and()
-                        .httpBasic();
+                        //.httpBasic();
+                        .formLogin()
+                        .loginPage("/login").permitAll()
+                        .defaultSuccessUrl("/courses")
+                        .and()
+                        .rememberMe()
+                        .and()
+                        .logout()
+                        .logoutUrl("/logout")
+                                .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET")) // REFER this: https://docs.spring.io/spring-security/site/docs/4.2.12.RELEASE/apidocs/org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html
+                                .clearAuthentication(true)
+                                .invalidateHttpSession(true)
+                                .deleteCookies("JSESSIONID", "remember-me")
+                                .logoutSuccessUrl("/login");
 
                 return http.build();
         }
